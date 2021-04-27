@@ -1,5 +1,4 @@
 import Vue from 'vue'
-import { isSamePath as _isSamePath, joinURL, normalizeURL, withQuery, withoutTrailingSlash } from 'ufo'
 
 // window.{{globals.loadedCallback}} hook
 // Useful for jsdom testing or plugins (https://github.com/tmpvar/jsdom#dealing-with-asynchronous-script-loading)
@@ -10,63 +9,19 @@ if (process.client) {
   }
 }
 
-export function createGetCounter (counterObject, defaultKey = '') {
-  return function getCounter (id = defaultKey) {
-    if (counterObject[id] === undefined) {
-      counterObject[id] = 0
-    }
-    return counterObject[id]++
-  }
-}
+export function empty() {}
 
-export function empty () {}
-
-export function globalHandleError (error) {
+export function globalHandleError(error) {
   if (Vue.config.errorHandler) {
     Vue.config.errorHandler(error)
   }
 }
 
-export function interopDefault (promise) {
+export function interopDefault(promise) {
   return promise.then(m => m.default || m)
 }
 
-export function hasFetch(vm) {
-  return vm.$options && typeof vm.$options.fetch === 'function' && !vm.$options.fetch.length
-}
-export function purifyData(data) {
-  if (process.env.NODE_ENV === 'production') {
-    return data
-  }
-
-  return Object.entries(data).filter(
-    ([key, value]) => {
-      const valid = !(value instanceof Function) && !(value instanceof Promise)
-      if (!valid) {
-        console.warn(`${key} is not able to be stringified. This will break in a production environment.`)
-      }
-      return valid
-    }
-    ).reduce((obj, [key, value]) => {
-      obj[key] = value
-      return obj
-    }, {})
-}
-export function getChildrenComponentInstancesUsingFetch(vm, instances = []) {
-  const children = vm.$children || []
-  for (const child of children) {
-    if (child.$fetch) {
-      instances.push(child)
-      continue; // Don't get the children since it will reload the template
-    }
-    if (child.$children) {
-      getChildrenComponentInstancesUsingFetch(child, instances)
-    }
-  }
-  return instances
-}
-
-export function applyAsyncData (Component, asyncData) {
+export function applyAsyncData(Component, asyncData) {
   if (
     // For SSR, we once all this function without second param to just apply asyncData
     // Prevent doing this for each SSR request
@@ -79,7 +34,7 @@ export function applyAsyncData (Component, asyncData) {
   Component.options._originDataFn = ComponentData
 
   Component.options.data = function () {
-    const data = ComponentData.call(this, this)
+    const data = ComponentData.call(this)
     if (this.$ssrContext) {
       asyncData = this.$ssrContext.asyncData[Component.cid]
     }
@@ -93,7 +48,7 @@ export function applyAsyncData (Component, asyncData) {
   }
 }
 
-export function sanitizeComponent (Component) {
+export function sanitizeComponent(Component) {
   // If Component already sanitized
   if (Component.options && Component._Ctor === Component) {
     return Component
@@ -105,27 +60,32 @@ export function sanitizeComponent (Component) {
     Component._Ctor = Component
     Component.extendOptions = Component.options
   }
-  // If no component name defined, set file path as name, (also fixes #5703)
+  // For debugging purpose
   if (!Component.options.name && Component.options.__file) {
     Component.options.name = Component.options.__file
   }
   return Component
 }
 
-export function getMatchedComponents (route, matches = false, prop = 'components') {
+export function getMatchedComponents(route, matches = false) {
   return Array.prototype.concat.apply([], route.matched.map((m, index) => {
-    return Object.keys(m[prop]).map((key) => {
+    return Object.keys(m.components).map((key) => {
       matches && matches.push(index)
-      return m[prop][key]
+      return m.components[key]
     })
   }))
 }
 
-export function getMatchedComponentsInstances (route, matches = false) {
-  return getMatchedComponents(route, matches, 'instances')
+export function getMatchedComponentsInstances(route, matches = false) {
+  return Array.prototype.concat.apply([], route.matched.map((m, index) => {
+    return Object.keys(m.instances).map((key) => {
+      matches && matches.push(index)
+      return m.instances[key]
+    })
+  }))
 }
 
-export function flatMapComponents (route, fn) {
+export function flatMapComponents(route, fn) {
   return Array.prototype.concat.apply([], route.matched.map((m, index) => {
     return Object.keys(m.components).reduce((promises, key) => {
       if (m.components[key]) {
@@ -138,42 +98,20 @@ export function flatMapComponents (route, fn) {
   }))
 }
 
-export function resolveRouteComponents (route, fn) {
+export function resolveRouteComponents(route) {
   return Promise.all(
-    flatMapComponents(route, async (Component, instance, match, key) => {
+    flatMapComponents(route, async (Component, _, match, key) => {
       // If component is a function, resolve it
       if (typeof Component === 'function' && !Component.options) {
-        try {
-          Component = await Component()
-        } catch (error) {
-          // Handle webpack chunk loading errors
-          // This may be due to a new deployment or a network problem
-          if (
-            error &&
-            error.name === 'ChunkLoadError' &&
-            typeof window !== 'undefined' &&
-            window.sessionStorage
-          ) {
-            const timeNow = Date.now()
-            const previousReloadTime = parseInt(window.sessionStorage.getItem('nuxt-reload'))
-
-            // check for previous reload time not to reload infinitely
-            if (!previousReloadTime || previousReloadTime + 60000 < timeNow) {
-              window.sessionStorage.setItem('nuxt-reload', timeNow)
-              window.location.reload(true /* skip cache */)
-            }
-          }
-
-          throw error
-        }
+        Component = await Component()
       }
-      match.components[key] = Component = sanitizeComponent(Component)
-      return typeof fn === 'function' ? fn(Component, instance, match, key) : Component
+      match.components[key] = sanitizeComponent(Component)
+      return match.components[key]
     })
   )
 }
 
-export async function getRouteData (route) {
+export async function getRouteData(route) {
   if (!route) {
     return
   }
@@ -188,29 +126,27 @@ export async function getRouteData (route) {
   }
 }
 
-export async function setContext (app, context) {
+export async function setContext(app, context) {
   // If context not defined, create it
   if (!app.context) {
     app.context = {
       isStatic: process.static,
-      isDev: true,
+      isDev: false,
       isHMR: false,
       app,
 
       payload: context.payload,
       error: context.error,
-      base: app.router.options.base,
+      base: '/',
       env: {}
     }
     // Only set once
-
     if (context.req) {
       app.context.req = context.req
     }
     if (context.res) {
       app.context.res = context.res
     }
-
     if (context.ssrContext) {
       app.context.ssrContext = context.ssrContext
     }
@@ -238,7 +174,7 @@ export async function setContext (app, context) {
           status
         })
       } else {
-        path = withQuery(path, query)
+        path = formatUrl(path, query)
         if (process.server) {
           app.context.next({
             path,
@@ -284,7 +220,7 @@ export async function setContext (app, context) {
   app.context.query = app.context.route.query || {}
 }
 
-export function middlewareSeries (promises, appContext) {
+export function middlewareSeries(promises, appContext) {
   if (!promises.length || appContext._redirected || appContext._errored) {
     return Promise.resolve()
   }
@@ -294,12 +230,9 @@ export function middlewareSeries (promises, appContext) {
     })
 }
 
-export function promisify (fn, context) {
+export function promisify(fn, context) {
   let promise
   if (fn.length === 2) {
-      console.warn('Callback-based asyncData, fetch or middleware calls are deprecated. ' +
-        'Please switch to promises or async/await syntax')
-
     // fn(context, callback)
     promise = new Promise((resolve) => {
       fn(context, function (err, data) {
@@ -313,29 +246,26 @@ export function promisify (fn, context) {
   } else {
     promise = fn(context)
   }
-
-  if (promise && promise instanceof Promise && typeof promise.then === 'function') {
-    return promise
+  if (!promise || (!(promise instanceof Promise) && (typeof promise.then !== 'function'))) {
+    promise = Promise.resolve(promise)
   }
-  return Promise.resolve(promise)
+  return promise
 }
 
 // Imported from vue-router
-export function getLocation (base, mode) {
+export function getLocation(base, mode) {
+  let path = decodeURI(window.location.pathname)
   if (mode === 'hash') {
     return window.location.hash.replace(/^#\//, '')
   }
-
-  base = decodeURI(base).slice(0, -1) // consideration is base is normalized with trailing slash
-  let path = decodeURI(window.location.pathname)
-
-  if (base && path.startsWith(base)) {
+  if (base && path.indexOf(base) === 0) {
     path = path.slice(base.length)
   }
+  return (path || '/') + window.location.search + window.location.hash
+}
 
-  const fullPath = (path || '/') + window.location.search + window.location.hash
-
-  return normalizeURL(fullPath)
+export function urlJoin() {
+  return Array.prototype.slice.call(arguments).join('/').replace(/\/+/g, '/')
 }
 
 // Imported from path-to-regexp
@@ -347,11 +277,11 @@ export function getLocation (base, mode) {
  * @param  {Object=}            options
  * @return {!function(Object=, Object=)}
  */
-export function compile (str, options) {
-  return tokensToFunction(parse(str, options), options)
+export function compile(str, options) {
+  return tokensToFunction(parse(str, options))
 }
 
-export function getQueryDiff (toQuery, fromQuery) {
+export function getQueryDiff(toQuery, fromQuery) {
   const diff = {}
   const queries = { ...toQuery, ...fromQuery }
   for (const k in queries) {
@@ -362,7 +292,7 @@ export function getQueryDiff (toQuery, fromQuery) {
   return diff
 }
 
-export function normalizeError (err) {
+export function normalizeError(err) {
   let message
   if (!(err.message || typeof err === 'string')) {
     try {
@@ -405,7 +335,7 @@ const PATH_REGEXP = new RegExp([
  * @param  {Object=} options
  * @return {!Array}
  */
-function parse (str, options) {
+function parse(str, options) {
   const tokens = []
   let key = 0
   let index = 0
@@ -477,9 +407,8 @@ function parse (str, options) {
  * @param  {string}
  * @return {string}
  */
-function encodeURIComponentPretty (str, slashAllowed) {
-  const re = slashAllowed ? /[?#]/g : /[/?#]/g
-  return encodeURI(str).replace(re, (c) => {
+function encodeURIComponentPretty(str) {
+  return encodeURI(str).replace(/[/?#]/g, (c) => {
     return '%' + c.charCodeAt(0).toString(16).toUpperCase()
   })
 }
@@ -490,41 +419,23 @@ function encodeURIComponentPretty (str, slashAllowed) {
  * @param  {string}
  * @return {string}
  */
-function encodeAsterisk (str) {
-  return encodeURIComponentPretty(str, true)
-}
-
-/**
- * Escape a regular expression string.
- *
- * @param  {string} str
- * @return {string}
- */
-function escapeString (str) {
-  return str.replace(/([.+*?=^!:${}()[\]|/\\])/g, '\\$1')
-}
-
-/**
- * Escape the capturing group by escaping special characters and meaning.
- *
- * @param  {string} group
- * @return {string}
- */
-function escapeGroup (group) {
-  return group.replace(/([=!:$/()])/g, '\\$1')
+function encodeAsterisk(str) {
+  return encodeURI(str).replace(/[?#]/g, (c) => {
+    return '%' + c.charCodeAt(0).toString(16).toUpperCase()
+  })
 }
 
 /**
  * Expose a method for transforming tokens into the path function.
  */
-function tokensToFunction (tokens, options) {
+function tokensToFunction(tokens) {
   // Compile all the tokens into regexps.
   const matches = new Array(tokens.length)
 
   // Compile all the patterns before compilation.
   for (let i = 0; i < tokens.length; i++) {
     if (typeof tokens[i] === 'object') {
-      matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$', flags(options))
+      matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$')
     }
   }
 
@@ -599,32 +510,77 @@ function tokensToFunction (tokens, options) {
 }
 
 /**
- * Get the flags for a regexp from the options.
+ * Escape a regular expression string.
  *
- * @param  {Object} options
+ * @param  {string} str
  * @return {string}
  */
-function flags (options) {
-  return options && options.sensitive ? '' : 'i'
+function escapeString(str) {
+  return str.replace(/([.+*?=^!:${}()[\]|/\\])/g, '\\$1')
 }
 
-export function addLifecycleHook(vm, hook, fn) {
-  if (!vm.$options[hook]) {
-    vm.$options[hook] = []
-  }
-  if (!vm.$options[hook].includes(fn)) {
-    vm.$options[hook].push(fn)
-  }
+/**
+ * Escape the capturing group by escaping special characters and meaning.
+ *
+ * @param  {string} group
+ * @return {string}
+ */
+function escapeGroup(group) {
+  return group.replace(/([=!:$/()])/g, '\\$1')
 }
 
-export const urlJoin = joinURL
+/**
+ * Format given url, append query to url query string
+ *
+ * @param  {string} url
+ * @param  {string} query
+ * @return {string}
+ */
+function formatUrl(url, query) {
+  let protocol
+  const index = url.indexOf('://')
+  if (index !== -1) {
+    protocol = url.substring(0, index)
+    url = url.substring(index + 3)
+  } else if (url.startsWith('//')) {
+    url = url.substring(2)
+  }
 
-export const stripTrailingSlash = withoutTrailingSlash
+  let parts = url.split('/')
+  let result = (protocol ? protocol + '://' : '//') + parts.shift()
 
-export const isSamePath = _isSamePath
+  let path = parts.filter(Boolean).join('/')
+  let hash
+  parts = path.split('#')
+  if (parts.length === 2) {
+    [path, hash] = parts
+  }
 
-export function setScrollRestoration (newVal) {
-  try {
-    window.history.scrollRestoration = newVal;
-  } catch(e) {}
+  result += path ? '/' + path : ''
+
+  if (query && JSON.stringify(query) !== '{}') {
+    result += (url.split('?').length === 2 ? '&' : '?') + formatQuery(query)
+  }
+  result += hash ? '#' + hash : ''
+
+  return result
+}
+
+/**
+ * Transform data object to query string
+ *
+ * @param  {object} query
+ * @return {string}
+ */
+function formatQuery(query) {
+  return Object.keys(query).sort().map((key) => {
+    const val = query[key]
+    if (val == null) {
+      return ''
+    }
+    if (Array.isArray(val)) {
+      return val.slice().map(val2 => [key, '=', val2].join('')).join('&')
+    }
+    return key + '=' + val
+  }).filter(Boolean).join('&')
 }

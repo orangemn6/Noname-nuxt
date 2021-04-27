@@ -1,6 +1,6 @@
 /** @type {import('@nuxt/types').Module} */
 export default function (ctx, inject) {
-  const sentry = process.sentry || {}
-  inject('sentry', sentry)
-  ctx.$sentry = sentry
+  // Inject Sentry to the context as $sentry
+  inject('sentry', process.sentry || {})
+  ctx.$sentry = process.sentry || {}
 }
