@@ -22,14 +22,80 @@ export interface ProductPrices {
 }
 
 const Products: Product[] = [
-  {
-    id: "demo-starry-night",
-    name: "Starry Night",
+{
+    id: "Superman",
+    name: "Superman - Mousepad",
     prices: {
-      physical: 79.95, //this is the big size
-      digital: 29.75 //this is the mini size, if you don't want a mini size set it to just 0
+      physical: 0, //this is just for now until we get a better price so leave it to change for the future
+      digital: 25.00
     },
-    description: "High-quality replica of The Starry Night by the Dutch post-impressionist painter Vincent van Gogh.",
+    description: "High quality mousepads with stitched edges and clean swirl design..",
+    image: "/images/starry-night.jpg",
+    fileGuid: "09e589c7-3d18-4c2e-9cee-4f447e9f054a",
+    plans: [],
+},
+
+{
+    id: "Redtiger",
+    name: "Red Tiger - Mousepad",
+    prices: {
+      physical: 0, //this is just for now until we get a better price so leave it to change for the future
+      digital: 25.00
+    },
+    description: "High quality mousepads with stitched edges and clean swirl design..",
+    image: "/images/starry-night.jpg",
+    fileGuid: "09e589c7-3d18-4c2e-9cee-4f447e9f054a",
+    plans: [],
+},
+
+{
+    id: "Tsunami",
+    name: "Tsunami - Mousepad",
+    prices: {
+      physical: 0, //this is just for now until we get a better price so leave it to change for the future
+      digital: 25.00
+    },
+    description: "High quality mousepads with stitched edges and clean swirl design..",
+    image: "/images/starry-night.jpg",
+    fileGuid: "09e589c7-3d18-4c2e-9cee-4f447e9f054a",
+    plans: [],
+},
+
+{
+    id: "Vintage",
+    name: "Vintage - Mousepad",
+    prices: {
+      physical: 0, //this is just for now until we get a better price so leave it to change for the future
+      digital: 25.00
+    },
+    description: "High quality mousepads with stitched edges and clean swirl design..",
+    image: "/images/starry-night.jpg",
+    fileGuid: "09e589c7-3d18-4c2e-9cee-4f447e9f054a",
+    plans: [],
+},
+
+
+{
+    id: "Vortex",
+    name: "Vortex - Mousepad",
+    prices: {
+      physical: 0, //this is just for now until we get a better price so leave it to change for the future
+      digital: 25.00
+    },
+    description: "High quality mousepads with stitched edges and clean swirl design..",
+    image: "/images/starry-night.jpg",
+    fileGuid: "09e589c7-3d18-4c2e-9cee-4f447e9f054a",
+    plans: [],
+},
+
+{
+    id: "Bengal",
+    name: "Bengal - Mousepad",
+    prices: {
+      physical: 0, //this is just for now until we get a better price so leave it to change for the future
+      digital: 25.00
+    },
+    description: "High quality mousepads with stitched edges and clean swirl design..",
     image: "/images/starry-night.jpg",
     fileGuid: "09e589c7-3d18-4c2e-9cee-4f447e9f054a",
     plans: [],
