@@ -1,7 +1,7 @@
 {
-  "name": "snipcart-demo-v3",
+  "name": "noname",
   "version": "1.0.0",
-  "description": "Snipcart v3 demonstration store",
+  "description": "nonametech",
   "author": "",
   "private": true,
   "scripts": {
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@nuxt/typescript-runtime": "^0.4.0",
+    "mkdirp": "^0.5.5",
     "nuxt": "^2.0.0"
   },
   "devDependencies": {
